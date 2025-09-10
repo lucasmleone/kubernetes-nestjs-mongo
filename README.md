@@ -1,60 +1,61 @@
-# Curso - Kubernetes primeros pasos
+# Desafío 8 — NestJS + MongoDB en Kubernetes (basado en Desafío 5)
 
-## Requisitos
+Este documento resume exactamente lo realizado:
+- Infra con ansible-k8s (Multipass + k0sctl).
+- Instalación de kubectl y k0s.
+- Reutilización del Dockerfile del Desafío 5: build y push a Docker Hub.
+- docker-compose actualizado para usar la imagen de Docker Hub.
+- Conversión a manifiestos de Kubernetes con Kompose.
+- PV creados previamente para la base de datos.
+- Despliegue con kubectl apply.
+- Service de la app en NodePort para acceso desde la máquina host.
 
-- Python3 >= 3.8.0
-- Multipass (https://multipass.run/install)
-- pipx (https://pipx.pypa.io/stable/)
-- K0sctl (https://github.com/k0sproject/k0sctl)
+---
 
-##
+## Requisitos 
+- Multipass, kubectl, k0sctl, Kompose, pipx/ansible y ansible-k8s
 
-Lo primero sera clonar este proyecto
-
+## 1) Imagen de la app (desde Desafío 5)
+Construí y publiqué en Docker Hub la imagen que hice para la app del desafío 5 y actualicé su referencia en el docker-compose.yaml:
 ```bash
-git clone https://github.com/yosoyfunes/ansible-k8s.git
+docker build -t lucasmleone/app-template-nestjs:latest .
+docker login
+docker push lucasmleone/app-template-nestjs:latest
 ```
 
-## Instrucciones uso
-
-### Instalación
-
+## 2) Convertir docker-compose a K8s con Kompose
+(ya en el repo bajo la carpeta kompose/)
 ```bash
-pipx install --include-deps ansible
+kompose convert -f docker-compose.yaml -o kompose/
 ```
 
-### Instalar pre-requisitos
-
+## 3) Persistencia para Mongo
+Crear el namespace y aplicar los PersistentVolumes desde un manifiesto:
 ```bash
-make requirements
+kubectl create ns kompose
+kubectl apply -f kompose/pv-definitions.yaml    # PVs (cluster-scope)
 ```
 
-### Crear ambiente de prueba
-
+## 4) Despliegue en Kubernetes
 ```bash
-make start
+kubectl apply -n kompose -f .
+kubectl get pods,svc -n kompose
+```
+El Service de la app está en NodePort 32000.
+
+## 5) Acceso y verificación
+Obtener la IP del controlador y probar:
+```bash
+multipass list    # tomar IP de k8s-controller
+curl http://<IP_CONTROLADOR>:32000/health
+kubectl logs -n kompose deploy/app
+kubectl logs -n kompose deploy/db
 ```
 
-### Setup ambiente de K8s
+## Evidencias
+![alt text](img/terminal.png)
+![alt text](img/nav.png)
+![alt text](img/multipass.png)
 
-```bash
-make setup
-```
-
-### Configurar kubeconfig en K8s
-
-```bash
-make kubeconfig
-```
-
-### Destruir ambiente de prueba
-
-```bash
-make stop
-```
-
-## Capitulos
-
-- [1. Instalación](./capitulos/1-install.md)
-- [2. Configuración](./capitulos/2-config.md)
-# kubernetes-nestjs-mongo
+## Diagrama
+![alt text](img/esquema.png)
