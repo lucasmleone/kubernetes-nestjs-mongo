@@ -1,4 +1,4 @@
-# Desafío 8 — NestJS + MongoDB en Kubernetes (basado en Desafío 5)
+# Desafío 8 — NestJS + MongoDB en Kubernetes
 
 Este documento resume exactamente lo realizado:
 - Infra con ansible-k8s (Multipass + k0sctl).
